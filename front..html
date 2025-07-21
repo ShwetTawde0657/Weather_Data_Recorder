@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather Data Recorder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    form, .summary, table {
+      background: #fff;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    input, select, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      background: #007BFF;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+      text-align: left;
+    }
+
+    .summary div {
+      margin-bottom: 10px;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .success {
+      color: green;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Weather Data Recorder</h1>
+
+  <form id="weatherForm">
+    <label for="date">Date (YYYY-MM-DD):</label>
+    <input type="date" id="date" required />
+
+    <label for="temperature">Temperature (°C):</label>
+    <input type="number" id="temperature" step="0.1" required />
+
+    <label for="condition">Weather Condition:</label>
+    <select id="condition" required>
+      <option value="">Select</option>
+      <option>Sunny</option>
+      <option>Cloudy</option>
+      <option>Rainy</option>
+      <option>Stormy</option>
+      <option>Snowy</option>
+    </select>
+
+    <button type="submit">Add Weather Data</button>
+    <p class="error" id="errorMsg"></p>
+    <p class="success" id="successMsg"></p>
+  </form>
+
+  <div id="weatherTableContainer">
+    <h2>Recorded Weather Data</h2>
+    <table id="weatherTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Temperature (°C)</th>
+          <th>Condition</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="summary" id="summarySection">
+    <h2>Summary</h2>
+    <div id="avgTemp"></div>
+    <div id="conditionCounts"></div>
+    <button onclick="exportCSV()">Export to CSV</button>
+  </div>
+
+  <script>
+    const weatherData = [];
+    const recordedDates = new Set();
+
+    const form = document.getElementById('weatherForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const successMsg = document.getElementById('successMsg');
+    const tbody = document.querySelector("#weatherTable tbody");
+    const avgTempDiv = document.getElementById('avgTemp');
+    const conditionCountsDiv = document.getElementById('conditionCounts');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const date = document.getElementById('date').value;
+      const temp = parseFloat(document.getElementById('temperature').value);
+      const condition = document.getElementById('condition').value;
+
+      errorMsg.textContent = '';
+      successMsg.textContent = '';
+
+      if (recordedDates.has(date)) {
+        errorMsg.textContent = "This date has already been recorded.";
+        return;
+      }
+
+      weatherData.push({ date, temperature: temp, condition });
+      recordedDates.add(date);
+      successMsg.textContent = "Weather data added successfully.";
+
+      updateTable();
+      updateSummary();
+
+      form.reset();
+    });
+
+    function updateTable() {
+      tbody.innerHTML = '';
+      weatherData.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${entry.date}</td>
+          <td>${entry.temperature.toFixed(1)}</td>
+          <td>${entry.condition}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function updateSummary() {
+      if (weatherData.length === 0) return;
+
+      const avgTemp = weatherData.reduce((sum, entry) => sum + entry.temperature, 0) / weatherData.length;
+      avgTempDiv.innerHTML = `<strong>Average Temperature:</strong> ${avgTemp.toFixed(2)}°C`;
+
+      const conditionCount = {};
+      weatherData.forEach(entry => {
+        conditionCount[entry.condition] = (conditionCount[entry.condition] || 0) + 1;
+      });
+
+      let countHTML = `<strong>Weather Condition Counts:</strong><ul>`;
+      for (let condition in conditionCount) {
+        countHTML += `<li>${condition}: ${conditionCount[condition]}</li>`;
+      }
+      countHTML += `</ul>`;
+      conditionCountsDiv.innerHTML = countHTML;
+    }
+
+    function exportCSV() {
+      if (weatherData.length === 0) return alert("No data to export!");
+
+      let csv = 'Date,Temperature,Condition\n';
+      weatherData.forEach(row => {
+        csv += `${row.date},${row.temperature},${row.condition}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'weather_report.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+
+</body>
+</html>
